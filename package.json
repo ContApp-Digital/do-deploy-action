@@ -1,0 +1,22 @@
+{
+  "name": "do-deploy-action",
+  "version": "1.0.0",
+  "description": "Digital Ocean kubernetes deploy",
+  "main": "index.js",
+  "scripts": {
+    "release": "standard-version"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ContApp-Digital/do-deploy-action.git"
+  },
+  "author": "Alain00",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ContApp-Digital/do-deploy-action/issues"
+  },
+  "homepage": "https://github.com/ContApp-Digital/do-deploy-action#readme",
+  "devDependencies": {
+    "standard-version": "^9.3.2"
+  }
+}

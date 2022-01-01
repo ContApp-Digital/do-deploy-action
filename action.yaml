@@ -1,5 +1,5 @@
 name: "Digital Ocean Deploy"
-description: "Digital Ocean Deploy made for contapp"
+description: "Digital Ocean kubernetes deploy"
 inputs:
   kubeconfig: 
     required: true
@@ -9,7 +9,6 @@ inputs:
     description: "Digital Ocean access token"
   registry:
     required: true
-    default: registry.digitalocean.com/contapp-registry
     description: "Image registry"
   image-name: 
     required: true
@@ -21,6 +20,10 @@ inputs:
   kube-resource:
     required: false
     description: "Kubernetes resources to rollout"
+  kube-namespace:
+    required: false
+    default: "default"
+    description: "Kubernetes default namespace"
 runs:
   using: composite
   steps:
@@ -59,4 +62,4 @@ runs:
       env:
         KUBE_CONFIG: ${{ inputs.kubeconfig }}
       with:
-        args: -n testing rollout restart ${{inputs.kube-resource}}
+        args: -n ${{inputs.kube-namespace}} rollout restart ${{inputs.kube-resource}}
