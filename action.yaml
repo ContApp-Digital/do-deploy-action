@@ -30,10 +30,6 @@ runs:
     - name: Checkout
       uses: actions/checkout@v2
 
-    - uses: satackey/action-docker-layer-caching@v0.0.11
-      with:
-        continue-on-error: true
-
     - name: Build image
       shell: bash
       run: docker build -t ${{inputs.image-name}} .
