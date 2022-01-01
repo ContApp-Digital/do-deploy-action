@@ -1,0 +1,62 @@
+name: "Digital Ocean Deploy"
+description: "Digital Ocean Deploy made for contapp"
+inputs:
+  kubeconfig: 
+    required: true
+    description: "kubernetes b64 config"
+  do-token:
+    required: true
+    description: "Digital Ocean access token"
+  registry:
+    required: true
+    default: registry.digitalocean.com/contapp-registry
+    description: "Image registry"
+  image-name: 
+    required: true
+    description: "Name of the image to build"
+  image-tag:
+    required: true
+    default: "latest"
+    description: "Image tag"
+  kube-resource:
+    required: false
+    description: "Kubernetes resources to rollout"
+runs:
+  using: composite
+  steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - uses: satackey/action-docker-layer-caching@v0.0.11
+      with:
+        continue-on-error: true
+
+    - name: Build image
+      shell: bash
+      run: docker build -t ${{inputs.image-name}} .
+
+    - name: Install doctl
+      uses: digitalocean/action-doctl@v2
+      with:
+        token: ${{ inputs.do-token }}
+
+    - name: Log in to DO Container Registry
+      shell: bash
+      run: doctl registry login --expiry-seconds 600
+
+    - name: Tag image
+      shell: bash
+      run:
+        docker tag ${{inputs.image-name}} ${{inputs.registry}}/${{inputs.image-name}}:${{inputs.image-tag}}
+
+    - name: Push image to Container Registry
+      shell: bash
+      run: docker push  ${{inputs.registry}}/${{inputs.image-name}}:${{inputs.image-tag}}
+
+    - name: Execute rollout
+      if: ${{inputs.kubeconfig && inputs.kube-resource}}
+      uses: actions-hub/kubectl@master
+      env:
+        KUBE_CONFIG: ${{ inputs.kubeconfig }}
+      with:
+        args: -n testing rollout restart ${{inputs.kube-resource}}
