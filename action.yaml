@@ -59,7 +59,8 @@ runs:
           env="develop";
           consulenv="develop";
         else 
-          echo "invalid environment"; exit -1
+          env="develop";
+          consulenv="develop";
         fi
         echo "ENV=$(echo $env)" >> $GITHUB_ENV
         echo "CONSULENV=$(echo $consulenv)" >> $GITHUB_ENV
