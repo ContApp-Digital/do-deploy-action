@@ -1,12 +1,26 @@
 name: "Digital Ocean Deploy"
 description: "Digital Ocean kubernetes deploy"
 inputs:
+  branch-develop:
+    required: false
+    description: "Develop branch"
+    default: "develop"
+  branch-production:
+    required: false
+    description: "Production branch"
+    default: "master"
   kubeconfig: 
     required: true
     description: "kubernetes b64 config"
   do-token:
     required: true
     description: "Digital Ocean access token"
+  consul-http-addr:
+    required: true
+    description: "Consul http address"
+  consul-http-token:
+    required: true
+    description: "Consul http token"
   registry:
     required: true
     description: "Image registry"
@@ -30,9 +44,29 @@ runs:
     - name: Checkout
       uses: actions/checkout@v2
 
+    - name: Setup Environment
+      shell: bash
+      run: |-
+        if [ ${{ github.event_name }} == "pull_request" ]; then 
+          branch=$(echo ${{ github.base_ref }}  | tr / -)
+        else 
+          branch=$(echo ${GITHUB_REF#refs/heads/} | tr / -)
+        fi
+        if [ $branch = ${{inputs.branch-production}} ]; then 
+          env="production";
+          consulenv="production";
+        elif [ $branch = ${{inputs.branch-develop}} ]; then 
+          env="develop";
+          consulenv="develop";
+        else 
+          echo "invalid environment"; exit -1
+        fi
+        echo "ENV=$(echo $env)" >> $GITHUB_ENV
+        echo "CONSULENV=$(echo $consulenv)" >> $GITHUB_ENV
+
     - name: Build image
       shell: bash
-      run: docker build -t ${{inputs.image-name}} .
+      run: docker build . --build-arg NODE_ENV=${{ env.CONSULENV }}  --build-arg CONSUL_HTTP_ADDR=${{ inputs.consul-http-addr }} --build-arg CONSUL_HTTP_TOKEN=${{ inputs.consul-http-token }} -t ${{inputs.image-name}} .
 
     - name: Install doctl
       uses: digitalocean/action-doctl@v2
