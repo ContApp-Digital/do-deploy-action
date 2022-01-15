@@ -67,7 +67,7 @@ runs:
 
     - name: Build image
       shell: bash
-      run: docker build . --build-arg NODE_ENV=${{ env.CONSULENV }}  --build-arg CONSUL_HTTP_ADDR=${{ inputs.consul-http-addr }} --build-arg CONSUL_HTTP_TOKEN=${{ inputs.consul-http-token }} -t ${{inputs.image-name}} .
+      run: docker build --build-arg NODE_ENV=${{ env.CONSULENV }}  --build-arg CONSUL_HTTP_ADDR=${{ inputs.consul-http-addr }} --build-arg CONSUL_HTTP_TOKEN=${{ inputs.consul-http-token }} -t ${{inputs.image-name}} .
 
     - name: Install doctl
       uses: digitalocean/action-doctl@v2
