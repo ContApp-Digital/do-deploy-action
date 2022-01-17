@@ -93,4 +93,4 @@ runs:
       env:
         KUBE_CONFIG: ${{ inputs.kubeconfig }}
       with:
-        args: -n ${{inputs.kube-namespace}} set image ${{inputs.kube-resource}} *=${{inputs.image-name}}:${{inputs.image-tag}}
+        args: -n ${{inputs.kube-namespace}} set image ${{inputs.kube-resource}} *=${{inputs.registry}}/${{inputs.image-name}}:${{inputs.image-tag}}
