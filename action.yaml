@@ -55,15 +55,19 @@ runs:
         if [ $branch = ${{inputs.branch-production}} ]; then 
           env="production";
           consulenv="production";
+          latest_tag="latest"
         elif [ $branch = ${{inputs.branch-develop}} ]; then 
           env="develop";
           consulenv="develop";
+          latest_tag="${env}-latest"
         else 
           env="develop";
           consulenv="develop";
+          latest_tag="${env}-latest"
         fi
         echo "ENV=$(echo $env)" >> $GITHUB_ENV
         echo "CONSULENV=$(echo $consulenv)" >> $GITHUB_ENV
+        echo "LATEST_TAG=$(echo $latest_tag)" >> $GITHUB_ENV
 
     - name: Build image
       shell: bash
@@ -82,12 +86,25 @@ runs:
       shell: bash
       run:
         docker tag ${{inputs.image-name}} ${{inputs.registry}}/${{inputs.image-name}}:${{inputs.image-tag}}
+    
+    - name: Tag image latest
+      shell: bash
+      run:
+        docker tag ${{inputs.image-name}} ${{inputs.registry}}/${{inputs.image-name}}:${{env.LATEST_TAG}}
 
     - name: Push image to Container Registry
       shell: bash
-      run: docker push  ${{inputs.registry}}/${{inputs.image-name}}:${{inputs.image-tag}}
+      run: docker push  ${{inputs.registry}}/${{inputs.image-name}} --all-tags
 
-    - name: Execute rollout
+    - name: Set consul tag key
+      uses: blablacar/action-consul-kv@master
+      with:
+        host: ${{ inputs.consul-http-addr }}
+        token: ${{ inputs.consul-http-token }}
+        key: ${{ inputs.consul-tag-key-path }}
+        value: ${{ inputs.image-tag }}
+
+    - name: Set K8s resource image
       if: ${{inputs.kubeconfig && inputs.kube-resource}}
       uses: actions-hub/kubectl@master
       env:
