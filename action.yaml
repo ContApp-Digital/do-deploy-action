@@ -5,9 +5,6 @@ inputs:
     required: false
     description: "Develop branch"
     default: "develop"
-  cd-tags-repo-url:
-    required: true
-    description: "Repository URL to store image tags"
   branch-production:
     required: false
     description: "Production branch"
@@ -24,6 +21,9 @@ inputs:
   consul-http-token:
     required: true
     description: "Consul http token"
+  consul-tag-key-path:
+    required: false
+    description: "Consul key path to store the latest tag"
   registry:
     required: true
     description: "Image registry"
@@ -72,10 +72,10 @@ runs:
         echo "ENV=$(echo $env)" >> $GITHUB_ENV
         echo "CONSULENV=$(echo $consulenv)" >> $GITHUB_ENV
         echo "LATEST_TAG=$(echo $latest_tag)" >> $GITHUB_ENV
-
-    - name: Build image
-      shell: bash
-      run: docker build --build-arg NODE_ENV=${{ env.CONSULENV }}  --build-arg CONSUL_HTTP_ADDR=${{ inputs.consul-http-addr }} --build-arg CONSUL_HTTP_TOKEN=${{ inputs.consul-http-token }} -t ${{inputs.image-name}} .
+    
+    -
+      name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
 
     - name: Install doctl
       uses: digitalocean/action-doctl@v2
@@ -86,33 +86,19 @@ runs:
       shell: bash
       run: doctl registry login --expiry-seconds 600
 
-    - name: Tag image
+    - name: Build image
       shell: bash
-      run:
-        docker tag ${{inputs.image-name}} ${{inputs.registry}}/${{inputs.image-name}}:${{inputs.image-tag}}
-    
-    - name: Tag image latest
-      shell: bash
-      run:
-        docker tag ${{inputs.image-name}} ${{inputs.registry}}/${{inputs.image-name}}:${{env.LATEST_TAG}}
+      run: |
+        docker buildx build \
+          --build-arg NODE_ENV=${{ env.CONSULENV }} \
+          --build-arg CONSUL_HTTP_ADDR=${{ inputs.consul-http-addr }} \
+          --build-arg CONSUL_HTTP_TOKEN=${{ inputs.consul-http-token }} \
+          --tag ${{inputs.registry}}/${{inputs.image-name}} \
+          --tag ${{inputs.registry}}/${{inputs.image-name}}:${{env.LATEST_TAG}} \
+          --tag ${{inputs.registry}}/${{inputs.image-name}}:${{inputs.image-tag}} \
+          --push \
+          .
 
-    - name: Push image to Container Registry
-      shell: bash
-      run: docker push  ${{inputs.registry}}/${{inputs.image-name}} --all-tags
-
-    - uses: actions/checkout@v2
-      with:
-        repository: ${{inputs.cd-tags-repo-url}}
-
-
-    - name: Save tag
-      shell: bash
-      run: |-
-        mkdir -p ${{inputs.image-name}}/${{env.CONSULENV}}
-        echo "${{inputs.image-tag}}" > ${{inputs.image-name}}/${{env.CONSULENV}}/.tag
-        git add .
-        git commit -m "release ${{inputs.image-name}} version ${{inputs.image-tag}}"
-        git push
 
     - name: Set K8s resource image
       if: ${{inputs.kubeconfig && inputs.kube-resource}}
@@ -121,3 +107,10 @@ runs:
         KUBE_CONFIG: ${{ inputs.kubeconfig }}
       with:
         args: -n ${{inputs.kube-namespace}} set image ${{inputs.kube-resource}} *=${{inputs.registry}}/${{inputs.image-name}}:${{inputs.image-tag}}
+    
+    - name: Use Consul
+      uses: docker://consul:1.11.2
+      with:
+        entrypoint: consul
+        args: kv put -http-addr="${{inputs.consul-http-addr}}" -token="${{inputs.consul-http-token}}" "versions/${{inputs.image-name}}/${{env.CONSULENV}}/.tag" "${{inputs.image-tag}}"
+
