@@ -5,6 +5,9 @@ inputs:
     required: false
     description: "Develop branch"
     default: "develop"
+  cd-tags-repo-url:
+    required: true
+    description: "Repository URL to store image tags"
   branch-production:
     required: false
     description: "Production branch"
@@ -41,6 +44,7 @@ inputs:
 runs:
   using: composite
   steps:
+
     - name: Checkout
       uses: actions/checkout@v2
 
@@ -96,13 +100,19 @@ runs:
       shell: bash
       run: docker push  ${{inputs.registry}}/${{inputs.image-name}} --all-tags
 
-    - name: Set consul tag key
-      uses: blablacar/action-consul-kv@master
+    - uses: actions/checkout@v2
       with:
-        host: ${{ inputs.consul-http-addr }}
-        token: ${{ inputs.consul-http-token }}
-        key: ${{ inputs.consul-tag-key-path }}
-        value: ${{ inputs.image-tag }}
+        repository: ${{inputs.cd-tags-repo-url}}
+
+
+    - name: Save tag
+      shell: bash
+      run: |-
+        mkdir -p ${{inputs.image-name}}/${{env.CONSULENV}}
+        echo "${{inputs.image-tag}}" > ${{inputs.image-name}}/${{env.CONSULENV}}/.tag
+        git add .
+        git commit -m "release ${{inputs.image-name}} version ${{inputs.image-tag}}"
+        git push
 
     - name: Set K8s resource image
       if: ${{inputs.kubeconfig && inputs.kube-resource}}
