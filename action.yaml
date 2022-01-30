@@ -27,6 +27,9 @@ inputs:
   image-name: 
     required: true
     description: "Name of the image to build"
+  image-tag-suffix: 
+    required: false
+    description: "suffix for the image tag"
   kube-resource:
     required: false
     description: "Kubernetes resources to rollout"
@@ -65,7 +68,7 @@ runs:
         echo "ENV=$(echo $env)" >> $GITHUB_ENV
         echo "CONSULENV=$(echo $consulenv)" >> $GITHUB_ENV
         echo "LATEST_TAG=$(echo $latest_tag)" >> $GITHUB_ENV
-        tag="${consulenv}-${{github.run_number}}"
+        tag="${consulenv}${{inputs.image-tag-suffix}}"
         echo "TAG=$(echo $tag)" >> $GITHUB_ENV
     
     -
