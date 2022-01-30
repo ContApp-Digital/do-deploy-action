@@ -21,26 +21,19 @@ inputs:
   consul-http-token:
     required: true
     description: "Consul http token"
-  consul-tag-key-path:
-    required: false
-    description: "Consul key path to store the latest tag"
   registry:
     required: true
     description: "Image registry"
   image-name: 
     required: true
     description: "Name of the image to build"
-  image-tag:
-    required: true
-    default: "latest"
-    description: "Image tag"
   kube-resource:
     required: false
     description: "Kubernetes resources to rollout"
-  kube-namespace:
+  kube-namespace-prefix:
     required: false
     default: "default"
-    description: "Kubernetes default namespace"
+    description: "Kubernetes namespace prefix"
 runs:
   using: composite
   steps:
@@ -63,15 +56,17 @@ runs:
         elif [ $branch = ${{inputs.branch-develop}} ]; then 
           env="develop";
           consulenv="develop";
-          latest_tag="${env}-latest"
+          latest_tag="${consulenv}-latest"
         else 
           env="develop";
           consulenv="develop";
-          latest_tag="${env}-latest"
+          latest_tag="${consulenv}-latest"
         fi
         echo "ENV=$(echo $env)" >> $GITHUB_ENV
         echo "CONSULENV=$(echo $consulenv)" >> $GITHUB_ENV
         echo "LATEST_TAG=$(echo $latest_tag)" >> $GITHUB_ENV
+        tag="${consulenv}-${{github.run_number}}"
+        echo "TAG=$(echo $tag)" >> $GITHUB_ENV
     
     -
       name: Set up Docker Buildx
@@ -95,7 +90,7 @@ runs:
           --build-arg CONSUL_HTTP_TOKEN=${{ inputs.consul-http-token }} \
           --tag ${{inputs.registry}}/${{inputs.image-name}} \
           --tag ${{inputs.registry}}/${{inputs.image-name}}:${{env.LATEST_TAG}} \
-          --tag ${{inputs.registry}}/${{inputs.image-name}}:${{inputs.image-tag}} \
+          --tag ${{inputs.registry}}/${{inputs.image-name}}:${{env.TAG}} \
           --push \
           .
 
@@ -106,11 +101,11 @@ runs:
       env:
         KUBE_CONFIG: ${{ inputs.kubeconfig }}
       with:
-        args: -n ${{inputs.kube-namespace}} set image ${{inputs.kube-resource}} *=${{inputs.registry}}/${{inputs.image-name}}:${{inputs.image-tag}}
+        args: -n ${{inputs.kube-namespace-prefix}}-${{env.CONSULENV}} set image ${{inputs.kube-resource}} *=${{inputs.registry}}/${{inputs.image-name}}:${{env.TAG}}
     
     - name: Use Consul
       uses: docker://consul:1.11.2
       with:
         entrypoint: consul
-        args: kv put -http-addr="${{inputs.consul-http-addr}}" -token="${{inputs.consul-http-token}}" "versions/${{inputs.image-name}}/${{env.CONSULENV}}/.tag" "${{inputs.image-tag}}"
+        args: kv put -http-addr="${{inputs.consul-http-addr}}" -token="${{inputs.consul-http-token}}" "versions/${{inputs.image-name}}/${{env.CONSULENV}}/.tag" "${{env.TAG}}"
 
