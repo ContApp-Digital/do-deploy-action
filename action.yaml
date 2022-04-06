@@ -84,18 +84,35 @@ runs:
       shell: bash
       run: doctl registry login --expiry-seconds 600
 
-    - name: Build image
-      shell: bash
-      run: |
-        docker buildx build \
-          --build-arg NODE_ENV=${{ env.CONSULENV }} \
-          --build-arg CONSUL_HTTP_ADDR=${{ inputs.consul-http-addr }} \
-          --build-arg CONSUL_HTTP_TOKEN=${{ inputs.consul-http-token }} \
-          --tag ${{inputs.registry}}/${{inputs.image-name}} \
-          --tag ${{inputs.registry}}/${{inputs.image-name}}:${{env.LATEST_TAG}} \
-          --tag ${{inputs.registry}}/${{inputs.image-name}}:${{env.TAG}} \
-          --push \
-          .
+    -
+      name: Build and push
+      uses: docker/build-push-action@v2
+      with:
+        context: .
+        push: true
+        cache-from: |
+          type=registry,ref=${{inputs.registry}}/${{inputs.image-name}}:cache
+        cache-to: |
+          type=registry,ref=${{inputs.registry}}/${{inputs.image-name}}:cache
+        build-args: |
+          NODE_ENV=${{ env.CONSULENV }}
+          CONSUL_HTTP_ADDR=${{ inputs.consul-http-addr }}
+          CONSUL_HTTP_TOKEN=${{ inputs.consul-http-token }}
+        tags: >-
+          ${{inputs.registry}}/${{inputs.image-name}},${{inputs.registry}}/${{inputs.image-name}}:${{env.LATEST_TAG}},${{inputs.registry}}/${{inputs.image-name}}:${{env.TAG}}
+
+    # - name: Build image
+    #   shell: bash
+    #   run: |
+    #     docker buildx build \
+    #       --build-arg NODE_ENV=${{ env.CONSULENV }} \
+    #       --build-arg CONSUL_HTTP_ADDR=${{ inputs.consul-http-addr }} \
+    #       --build-arg CONSUL_HTTP_TOKEN=${{ inputs.consul-http-token }} \
+    #       --tag ${{inputs.registry}}/${{inputs.image-name}} \
+    #       --tag ${{inputs.registry}}/${{inputs.image-name}}:${{env.LATEST_TAG}} \
+    #       --tag ${{inputs.registry}}/${{inputs.image-name}}:${{env.TAG}} \
+    #       --push \
+    #       .
 
 
     - name: Set K8s resource image
