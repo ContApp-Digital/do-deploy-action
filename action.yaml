@@ -37,6 +37,10 @@ inputs:
     required: false
     default: "default"
     description: "Kubernetes namespace prefix"
+  dockerfile-path:
+    required: false
+    description: "Path to the Dockerfile"
+    default: 'Dockerfile'
 runs:
   using: composite
   steps:
@@ -98,6 +102,7 @@ runs:
           NODE_ENV=${{ env.CONSULENV }}
           CONSUL_HTTP_ADDR=${{ inputs.consul-http-addr }}
           CONSUL_HTTP_TOKEN=${{ inputs.consul-http-token }}
+        file: ${{ inputs.dockerfile-path }}
         tags: >-
           ${{inputs.registry}}/${{inputs.image-name}},${{inputs.registry}}/${{inputs.image-name}}:${{env.LATEST_TAG}},${{inputs.registry}}/${{inputs.image-name}}:${{env.TAG}}
 
