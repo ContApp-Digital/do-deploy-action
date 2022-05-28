@@ -41,6 +41,12 @@ inputs:
     required: false
     description: "Path to the Dockerfile"
     default: 'Dockerfile'
+  docker-username: 
+    required: false
+    description: "docker hub username"
+  docker-password: 
+    required: false
+    description: "docker hub password"
 runs:
   using: composite
   steps:
