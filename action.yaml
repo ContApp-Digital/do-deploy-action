@@ -97,10 +97,6 @@ runs:
       with:
         token: ${{ inputs.do-token }}
 
-    - name: Log in to DO Container Registry
-      shell: bash
-      run: doctl registry login --expiry-seconds 600
-
     -
       name: Build and push
       uses: docker/build-push-action@v2
