@@ -47,6 +47,9 @@ inputs:
   docker-password: 
     required: false
     description: "docker hub password"
+  newrelic-license-key:
+    required: false
+    description: "New Relic license key"
 runs:
   using: composite
   steps:
@@ -111,6 +114,7 @@ runs:
           NODE_ENV=${{ env.CONSULENV }}
           CONSUL_HTTP_ADDR=${{ inputs.consul-http-addr }}
           CONSUL_HTTP_TOKEN=${{ inputs.consul-http-token }}
+          NEWRELIC_LICENSE_KEY=${{ inputs.newrelic-license-key }}
         file: ${{ inputs.dockerfile-path }}
         tags: >-
           ${{inputs.registry}}/${{inputs.image-name}},${{inputs.registry}}/${{inputs.image-name}}:${{env.LATEST_TAG}},${{inputs.registry}}/${{inputs.image-name}}:${{env.TAG}}
@@ -135,7 +139,9 @@ runs:
       env:
         KUBE_CONFIG: ${{ inputs.kubeconfig }}
       with:
-        args: -n ${{inputs.kube-namespace-prefix}}-${{env.CONSULENV}} set image ${{inputs.kube-resource}} *=${{inputs.registry}}/${{inputs.image-name}}:${{env.TAG}}
+        args: | 
+          -n ${{inputs.kube-namespace-prefix}}-${{env.CONSULENV}} |
+          set image ${{inputs.kube-resource}} *=${{inputs.registry}}/${{inputs.image-name}}:${{env.TAG}}
     
     - name: Use Consul
       uses: docker://consul:1.11.2
