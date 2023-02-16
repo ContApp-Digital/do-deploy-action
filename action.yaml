@@ -50,6 +50,9 @@ inputs:
   newrelic-license-key:
     required: false
     description: "New Relic license key"
+  hs-token:
+    required: false
+    description: "helios token"
 runs:
   using: composite
   steps:
@@ -115,6 +118,7 @@ runs:
           CONSUL_HTTP_ADDR=${{ inputs.consul-http-addr }}
           CONSUL_HTTP_TOKEN=${{ inputs.consul-http-token }}
           NEW_RELIC_LICENSE_KEY=${{ inputs.newrelic-license-key }}
+          HS_TOKEN=${{ inputs.hs-token }}
         file: ${{ inputs.dockerfile-path }}
         tags: >-
           ${{inputs.registry}}/${{inputs.image-name}},${{inputs.registry}}/${{inputs.image-name}}:${{env.LATEST_TAG}},${{inputs.registry}}/${{inputs.image-name}}:${{env.TAG}}
